@@ -11,7 +11,7 @@ class CustomCommand extends SdtdCommand {
   }
 
   async isEnabled(chatMessage, player, server, args) {
-    return true
+    return true;
   }
 
   async run(chatMessage, player, server, args, options) {
@@ -38,11 +38,8 @@ class CustomCommand extends SdtdCommand {
 
 
       options.commandsToExecute = replaceAllInString(options.commandsToExecute, `\${${argument.key}}`, valueToFill)
+      argumentIterator++
     }
-
-
-    argumentIterator++
-
 
     // Check if the player has exceeded the configured timeout
     if (this.options.timeout) {
@@ -95,47 +92,28 @@ class CustomCommand extends SdtdCommand {
     }, delayInMs)
 
     async function runCustomCommand(chatMessage, player, server, args, options) {
-      let commandsExecuted = new Array();
       try {
-        let commandsToExecute = options.commandsToExecute.split(';');
 
-        for (const command of commandsToExecute) {
+        let executedCmds = await sails.helpers.sdtd.executeCustomCmd(server, options.commandsToExecute.split(';'), {
+          player: player,
+          command: options
+        });
 
-          if (command.includes("wait(")) {
-            let secondsToWaitStr = command.replace('wait(', '').replace(')', '');
-            let secondsToWait;
+        if (options.sendOutput) {
 
-            secondsToWait = parseInt(secondsToWaitStr);
-
-            if (secondsToWait < 1) {
-              return chatMessage.reply(`Cannot wait for a negative or 0 amount of seconds`);
-            }
-
-            if (isNaN(secondsToWait)) {
-              return chatMessage.reply(`Invalid wait() syntax! example: wait(5)`);
-            }
-
-            await delaySeconds(secondsToWait);
-          } else {
-
-            let commandInfoFilledIn = command.replace('${entityId}', player.entityId)
-            commandInfoFilledIn = commandInfoFilledIn.replace('${steamId}', player.steamId)
-            let commandResult = await executeCommand(server, _.trim(commandInfoFilledIn));
-            commandsExecuted.push(commandResult);
-
-            if (options.sendOutput) {
-              await chatMessage.reply(commandResult.result);
+          for (const cmd of executedCmds) {
+            if (!_.isEmpty(cmd.result)) {
+              await chatMessage.reply(cmd.result);
             }
           }
-
-
         }
-        sails.log.debug(`HOOK SdtdCommands - custom command ran by player ${player.name} on server ${server.name} - ${chatMessage.messageText}`, chatMessage, commandsExecuted);
+
+        sails.log.debug(`HOOK SdtdCommands - custom command ran by player ${player.name} on server ${server.name} - ${chatMessage.messageText}`, chatMessage, executedCmds);
 
 
       } catch (error) {
-        chatMessage.reply(`Error! Contact your server admin with this message: ${error.replace(/\"/g,"")}`)
         sails.log.error(`Custom command error - ${server.name} - ${chatMessage.messageText} - ${error}`)
+        chatMessage.reply(`Error! Contact your server admin with this message: ${error.toString().replace(/\"/g,"")}`)
       }
     }
   }

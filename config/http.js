@@ -9,6 +9,12 @@
  * https://sailsjs.com/config/http
  */
 
+const morgan = require('morgan');
+
+const {
+  customLogger
+} = require('./customLog');
+
 /**
  * PASSPORT CONFIGURATION
  */
@@ -16,6 +22,11 @@
 var passport = require('passport');
 var SteamStrategy = require('passport-steam');
 var DiscordStrategy = require('passport-discord').Strategy;
+const Sentry = require('@sentry/node');
+Sentry.init({
+  dsn: process.env.SENTRY_DSN
+});
+
 
 var maxAge = 900;
 /**
@@ -32,15 +43,15 @@ passport.use(new SteamStrategy({
     let foundUser = await User.findOrCreate({
       steamId: profile._json.steamid
     }, {
-        steamId: profile._json.steamid,
-        username: profile._json.personaname
-      })
+      steamId: profile._json.steamid,
+      username: profile._json.personaname
+    })
     let updatedUser = await User.update({
       id: foundUser.id
     }, {
-        username: profile._json.personaname,
-        avatar: profile._json.avatarfull
-      }).fetch()
+      username: profile._json.personaname,
+      avatar: profile._json.avatarfull
+    }).fetch()
     foundUser.steamProfile = profile;
     return done(null, foundUser);
   } catch (error) {
@@ -53,18 +64,24 @@ passport.use(new SteamStrategy({
 
 let discordScopes = ['identify', 'guilds'];
 
-passport.use(new DiscordStrategy({
-  clientID: process.env.DISCORDCLIENTID,
-  clientSecret: process.env.DISCORDCLIENTSECRET,
-  callbackURL: `${process.env.CSMM_HOSTNAME}/auth/discord/return`,
-  scope: discordScopes
-}, async function (accessToken, refreshToken, profile, cb) {
-  try {
-    return cb(null, profile);
-  } catch (error) {
-    sails.log.error(`Discord auth error! ${error}`)
-  }
-}));
+if (process.env.DISCORDCLIENTID && process.env.DISCORDCLIENTSECRET && process.env.CSMM_HOSTNAME) {
+  passport.use(new DiscordStrategy({
+    clientID: process.env.DISCORDCLIENTID,
+    clientSecret: process.env.DISCORDCLIENTSECRET,
+    callbackURL: `${process.env.CSMM_HOSTNAME}/auth/discord/return`,
+    scope: discordScopes
+  }, async function (accessToken, refreshToken, profile, cb) {
+    try {
+      return cb(null, profile);
+    } catch (error) {
+      sails.log.error(`Discord auth error! ${error}`)
+    }
+  }));
+
+} else {
+  console.log(`No Discord client ID and/or client secret given in dotenv. Discarding Discord passport configuration`);
+}
+
 
 
 passport.serializeUser(function (user, done) {
@@ -80,7 +97,28 @@ passport.deserializeUser(function (steamId, done) {
   });
 });
 
+morgan.token('userId', function (req, res) {
+  if (req.session) {
+    return req.session.userId
+  } else {
+    return "Not logged in"
+  }
+})
+
+
+const morganLogger = morgan(':remote-addr - :userId - [:date[clf]] ":method :url HTTP/:http-version" :status :res[content-length] ":referrer" ":user-agent"', {
+  "stream": customLogger.stream,
+  skip: (req, res) => {
+    return !req.originalUrl.includes('api')
+  }
+});
+
+
+
+
+
 module.exports.http = {
+
 
   /****************************************************************************
    *                                                                           *
@@ -96,6 +134,9 @@ module.exports.http = {
     passportInit: require('passport').initialize(),
     passportSession: require('passport').session(),
     xframe: require('lusca').xframe('SAMEORIGIN'),
+    sentryRequest: Sentry.Handlers.requestHandler(),
+    sentryError: Sentry.Handlers.errorHandler(),
+    morgan: morganLogger,
 
     /***************************************************************************
      *                                                                          *
@@ -105,11 +146,14 @@ module.exports.http = {
      ***************************************************************************/
 
     order: [
+      'sentryRequest',
+      'sentryError',
       'cookieParser',
       'session',
       'passportInit',
       'passportSession',
       'xframe',
+      'morgan',
       'bodyParser',
       'compress',
       'poweredBy',

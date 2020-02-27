@@ -1,7 +1,7 @@
 module.exports = {
 
 
-  friendlyName: 'Update Timeout',
+  friendlyName: 'Update output',
 
 
   description: '',
@@ -15,6 +15,7 @@ module.exports = {
 
     newOutput: {
       type: 'boolean',
+      required: true
     },
 
   },

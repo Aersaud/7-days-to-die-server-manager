@@ -40,16 +40,20 @@ module.exports.custom = {
 
 
   // MOD VERSIONS
-  currentAllocs: "29",
-  currentCpm: '6.7',
+  currentAllocs: '31',
+  currentCpm: '9.4',
 
   // TRACKING
 
-  trackingCyclesBeforeDelete: 10,
+  trackingCyclesBeforeDelete: 25,
 
   // Economy
 
-  economyActionsBeforeDelete: 50,
+  economyActionsBeforeDelete: 100,
+
+  // Custom hooks
+
+  supportedHooks: ['playerConnected', 'playerDisconnected', 'chatMessage', 'playerDeath', 'playerJoined', 'playerLevel', 'zombieKilled', 'animalKilled', 'playerKilled', 'logLine', 'playerSuicide'],
 
   // DONORS
   donorConfig: {
@@ -58,7 +62,7 @@ module.exports.custom = {
       memUpdateKeepDataHours: 12,
       maxTeleports: 3,
       maxServers: 1,
-      maxCustomCommands: 3,
+      maxCustomCommands: 10,
       economyKeepDataHours: 12,
       maxCronJobs: 5,
       playerTrackerKeepInventoryHours: 0,
@@ -69,7 +73,7 @@ module.exports.custom = {
       memUpdateKeepDataHours: 24,
       maxTeleports: 5,
       maxServers: 2,
-      maxCustomCommands: 5,
+      maxCustomCommands: 10,
       economyKeepDataHours: 24,
       maxCronJobs: 10,
       playerTrackerKeepInventoryHours: 12,
@@ -80,7 +84,7 @@ module.exports.custom = {
       memUpdateKeepDataHours: 72,
       maxTeleports: 10,
       maxServers: 3,
-      maxCustomCommands: 10,
+      maxCustomCommands: 25,
       economyKeepDataHours: 72,
       maxCronJobs: 20,
       playerTrackerKeepInventoryHours: 24,
@@ -91,7 +95,7 @@ module.exports.custom = {
       memUpdateKeepDataHours: 120,
       maxTeleports: 25,
       maxServers: 4,
-      maxCustomCommands: 20,
+      maxCustomCommands: 75,
       economyKeepDataHours: 120,
       maxCronJobs: 50,
       playerTrackerKeepInventoryHours: 72,
@@ -102,12 +106,34 @@ module.exports.custom = {
       memUpdateKeepDataHours: 168,
       maxTeleports: 100,
       maxServers: 5,
-      maxCustomCommands: 50,
+      maxCustomCommands: 150,
       economyKeepDataHours: 168,
       maxCronJobs: 100,
       playerTrackerKeepInventoryHours: 120,
       playerTrackerKeepLocationHours: 168,
       maxCustomNotifications: 50,
+    },
+    premium: {
+      memUpdateKeepDataHours: 336,
+      maxTeleports: 150,
+      maxServers: 10,
+      maxCustomCommands: 250,
+      economyKeepDataHours: 168,
+      maxCronJobs: 200,
+      playerTrackerKeepInventoryHours: 168,
+      playerTrackerKeepLocationHours: 240,
+      maxCustomNotifications: 100,
+    },
+    enterprise: {
+      memUpdateKeepDataHours: 720,
+      maxTeleports: 999999999,
+      maxServers: 20,
+      maxCustomCommands: 999999999,
+      economyKeepDataHours: 168,
+      maxCronJobs: 999999999,
+      playerTrackerKeepInventoryHours: 240,
+      playerTrackerKeepLocationHours: 336,
+      maxCustomNotifications: 999999999,
     }
   },
 };

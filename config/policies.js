@@ -14,7 +14,7 @@
  */
 
 
-module.exports.policies = {
+let policyObject = {
 
   // isLoggedIn gets included in most of these because it contains the redirect logic
 
@@ -33,25 +33,26 @@ module.exports.policies = {
     'economy/*': ['isLoggedIn', 'roles/manageEconomy'],
     'historicalData/*': ['isLoggedIn', 'roles/viewAnalytics'],
     "view-tracking": ['isLoggedIn', 'roles/useTracking'],
+    "load-land-claims": ['isLoggedIn', 'roles/useTracking'],
     "execute-command": ['isLoggedIn', 'roles/useCommands'],
     "send-message": ['isLoggedIn', 'roles/useChat'],
     "get-players": ['isLoggedIn', 'roles/hasAccess'],
+    "get-players-datatable": ['isLoggedIn', 'roles/managePlayers'],
+    'server-info-view': ['isLoggedIn', 'roles/hasAccess'],
+    'check-donator': 'isLoggedIn',
   },
 
   gblController: {
     '*': 'isLoggedIn',
-    'set-note': ["isLoggedIn"] // Permission check is handled inside the action
+    'set-note': ["isLoggedIn"], // Permission check is handled inside the action
+    'delete-ban': ["IsLoggedIn", "roles/manageGbl"],
   },
 
   roleController: {
     '*': ["isLoggedIn", 'roles/manageServer'],
-    'add-player': ["isLoggedIn", 'roles/manageServer'],
+    'add-player': ["isLoggedIn", 'roles/managePlayers'],
     'get-role': ["isLoggedIn"],
     'check-permission': ["isLoggedIn"]
-  },
-
-  CpmController: {
-    '*': ["isLoggedIn", 'roles/manageServer'],
   },
 
   ShopController: {
@@ -89,6 +90,9 @@ module.exports.policies = {
     'view-ticket': ["isLoggedIn", 'canSeeTicket'],
     'open-tickets': true,
     'server-tickets-view': ["isLoggedIn", 'roles/manageTickets'],
+    'add-comment': ["isLoggedIn", 'canSeeTicket'],
+    'edit-ticket': ["isLoggedIn", 'roles/manageTickets'],
+    'update-ticket-status': ["isLoggedIn", 'roles/manageTickets'],
   },
 
   "tracking-info": {
@@ -99,4 +103,18 @@ module.exports.policies = {
     "*": ["isLoggedIn", 'roles/manageServer']
   },
 
+  customHookController: {
+    '*': ["isLoggedIn", 'roles/manageServer'],
+  },
+
 };
+
+
+if (process.env.IS_TEST) {
+  console.log(`Detected a testing environment, disabling policies. If you are NOT running tests this is VERY VERY bad.`);
+  module.exports.policies = {
+    '*': true
+  };
+} else {
+  module.exports.policies = policyObject;
+}

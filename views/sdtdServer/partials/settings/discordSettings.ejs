@@ -17,7 +17,7 @@
 
   <%  } else { %>
 
-  <a class="btn btn-primary" href='https://discordapp.com/oauth2/authorize?client_id=396968286853529600&scope=bot&permissions=268749889'
+  <a class="btn btn-primary" href='https://discordapp.com/oauth2/authorize?client_id=<%= process.env.DISCORDCLIENTID %>&scope=bot&permissions=268749889'
     target="_blank" role="button">Add bot to your server</a>
 
   <hr>
@@ -69,6 +69,20 @@
     </label>
   </div>
 
+  <div class="form-check">
+    <% if(config.chatChannelGlobalOnly) { %>
+    <input class="form-check-input" type="checkbox" value="" id="input-settings-discord-chatchannel-chatChannel-GlobalOnly"
+      checked>
+    <% } else { %>
+    <input class="form-check-input" type="checkbox" value="" id="input-settings-discord-chatchannel-chatChannel-GlobalOnly">
+    <% } %>
+    <label class="form-check-label" for="input-settings-discord-chatchannel-chatChannel-GlobalOnly">
+      <strong> Only global messages </strong>
+      <br>
+      <p> When checked, only messages sent in the global chat channel will be displayed. Thus excluding party chat. </p>
+    </label>
+  </div>
+
   <div class="form-group">
     <label for="input-settings-discord-chatchannel-blockedPrefixes">Blocked prefixes</label>
     <input type="text" class="form-control" name="input-settings-discord-chatchannel-blockedPrefixes" id="input-settings-discord-chatchannel-blockedPrefixes"
@@ -78,6 +92,7 @@
       if you have a public chatbridge. Type each prefix and seperate them with ','. So for example: /,!
     </small>
   </div>
+
 
   <button id="input-settings-discord-setchatchannel-btn" type="button" class="btn btn-primary">Set chat channel</button>
 
@@ -278,6 +293,10 @@
             })
             .text(guild.name));
         })
+        $('#input-settings-discord-guild').append($('<option>', {
+            value: 0
+          })
+          .text("None"));
         $(`#input-settings-discord-guild option[value='${discordGuildId}']`).prop('selected', true);
         if (discordGuildId) {
           let selectedGuildId = $('#input-settings-discord-guild').val()
@@ -292,9 +311,8 @@
             })
         }
       },
-      error: (xhr, status, error) => {
-        displayAjaxToSupportData(xhr, this.URL);;
-        showErrorModal(`${error} - ${xhr.responseText}`);
+      error: function (xhr, status, error) {
+        displayAjaxToSupportData(xhr, this);
       }
     })
 
@@ -322,10 +340,10 @@
         success: (data, status, xhr) => {
           $('#input-settings-discord-prefix').addClass("bg-success").removeClass("bg-danger");
         },
-        error: (xhr, status, error) => {
+        error: function (xhr, status, error) {
           $('#input-settings-discord-prefix').addClass("bg-danger").removeClass("bg-success");
-          displayAjaxToSupportData(xhr, this.URL);;
-          showErrorModal(`${error} - ${xhr.responseText}`);
+          displayAjaxToSupportData(xhr, this);;
+          showErrorModal(`${error} - ${xhr.responseText}`, xhr);
         }
       })
     })
@@ -333,6 +351,11 @@
 
     async function getWritableChannels(guildId) {
       return new Promise((resolve, reject) => {
+        console.log("guildId " + guildId)
+        if (guildId === 0 || guildId === "0") {
+          return resolve([]);
+        }
+
         $.ajax({
           url: `/api/sdtdserver/findwriteablechannelsinguild`,
           data: {
@@ -343,9 +366,9 @@
             let foundChannels = data;
             resolve(foundChannels);
           },
-          error: (xhr, status, error) => {
-            displayAjaxToSupportData(xhr, this.URL);;
-            showErrorModal(`${error} - ${xhr.responseText}`);
+          error: function (xhr, status, error) {
+            displayAjaxToSupportData(xhr, this);;
+            showErrorModal(`${error} - ${xhr.responseText}`, xhr);
           }
         })
       })
@@ -395,8 +418,12 @@
         },
         success: (data, status, xhr) => {
           $('#input-settings-discord-guild').addClass("bg-success").removeClass("bg-danger");
-
           let selectedGuildId = $('#input-settings-discord-guild').val()
+
+          if (selectedGuildId === "0") {
+            return;
+          }
+
           selectsWithDiscordChannels.forEach(select => {
             select.select.prop('disabled', false)
           })
@@ -411,10 +438,10 @@
               console.log(e)
             })
         },
-        error: (xhr, status, error) => {
+        error: function (xhr, status, error) {
           $('#input-settings-discord-guild').addClass("bg-danger").removeClass("bg-success");
-          displayAjaxToSupportData(xhr, this.URL);;
-          showErrorModal(`${error} - ${xhr.responseText}`);
+          displayAjaxToSupportData(xhr, this);;
+          showErrorModal(`${error} - ${xhr.responseText}`, xhr);
         }
       })
 
@@ -423,7 +450,8 @@
     $("#input-settings-discord-setchatchannel-btn").click(e => {
       e.preventDefault();
       let newChatChannelId = $('#input-settings-discord-chatchannel').val();
-      let newRichMessages
+      let newRichMessages;
+      let newChatChannelGlobalOnly;
       let blockedPrefixes = $("#input-settings-discord-chatchannel-blockedPrefixes").val();
 
       if (blockedPrefixes !== "") {
@@ -438,10 +466,10 @@
           success: (data, status, xhr) => {
 
           },
-          error: (xhr, status, error) => {
+          error: function (xhr, status, error) {
             $('#input-settings-discord-chatchannel').addClass("bg-danger").removeClass("bg-success");
-            displayAjaxToSupportData(xhr, this.URL);;
-            showErrorModal(`${error} - ${xhr.responseText}`);
+            displayAjaxToSupportData(xhr, this);;
+            showErrorModal(`${error} - ${xhr.responseText}`, xhr);
           }
         })
       }
@@ -451,6 +479,13 @@
       } else {
         newRichMessages = false
       }
+
+      if ($('#input-settings-discord-chatchannel-chatChannel-GlobalOnly').is(":checked")) {
+        newChatChannelGlobalOnly = true
+      } else {
+        newChatChannelGlobalOnly = false
+      }
+
       if (!newChatChannelId) {
         return alert('Error! Make sure you have a guild set and are selecting a valid channel')
       }
@@ -461,15 +496,16 @@
           chatChannelId: newChatChannelId,
           serverId: "<%= server.id %>",
           richMessages: newRichMessages,
+          onlyGlobal: newChatChannelGlobalOnly,
           _csrf: window.SAILS_LOCALS._csrf
         },
         success: (data, status, xhr) => {
           $('#input-settings-discord-chatchannel').addClass("bg-success").removeClass("bg-danger");
         },
-        error: (xhr, status, error) => {
+        error: function (xhr, status, error) {
           $('#input-settings-discord-chatchannel').addClass("bg-danger").removeClass("bg-success");
-          displayAjaxToSupportData(xhr, this.URL);;
-          showErrorModal(`${error} - ${xhr.responseText}`);
+          displayAjaxToSupportData(xhr, this);;
+          showErrorModal(`${error} - ${xhr.responseText}`, xhr);
         }
       })
     })
@@ -492,11 +528,11 @@
           $('#discord-settings-notifications-reboots-select').addClass("bg-success").removeClass(
             "bg-danger");
         },
-        error: (xhr, status, error) => {
+        error: function (xhr, status, error) {
           $('#discord-settings-notifications-reboots-select').addClass("bg-danger").removeClass(
             "bg-success");
-          displayAjaxToSupportData(xhr, this.URL);;
-          showErrorModal(`${error} - ${xhr.responseText}`);
+          displayAjaxToSupportData(xhr, this);;
+          showErrorModal(`${error} - ${xhr.responseText}`, xhr);
         }
       })
     })
@@ -519,11 +555,11 @@
           $('#discord-settings-notifications-playerconnect-select').addClass("bg-success").removeClass(
             "bg-danger");
         },
-        error: (xhr, status, error) => {
+        error: function (xhr, status, error) {
           $('#discord-settings-notifications-playerconnect-select').addClass("bg-danger").removeClass(
             "bg-success");
-          displayAjaxToSupportData(xhr, this.URL);;
-          showErrorModal(`${error} - ${xhr.responseText}`);
+          displayAjaxToSupportData(xhr, this);;
+          showErrorModal(`${error} - ${xhr.responseText}`, xhr);
         }
       })
     })
@@ -546,11 +582,11 @@
           $('#discord-settings-notifications-playerdisconnect-select').addClass("bg-success").removeClass(
             "bg-danger");
         },
-        error: (xhr, status, error) => {
+        error: function (xhr, status, error) {
           $('#discord-settings-notifications-playerdisconnect-select').addClass("bg-danger").removeClass(
             "bg-success");
-          displayAjaxToSupportData(xhr, this.URL);;
-          showErrorModal(`${error} - ${xhr.responseText}`);
+          displayAjaxToSupportData(xhr, this);;
+          showErrorModal(`${error} - ${xhr.responseText}`, xhr);
         }
       })
     })
@@ -573,11 +609,11 @@
           $('#discord-settings-notifications-connected-select').addClass("bg-success").removeClass(
             "bg-danger");
         },
-        error: (xhr, status, error) => {
+        error: function (xhr, status, error) {
           $('#discord-settings-notifications-connected-select').addClass("bg-danger").removeClass(
             "bg-success");
-          displayAjaxToSupportData(xhr, this.URL);;
-          showErrorModal(`${error} - ${xhr.responseText}`);
+          displayAjaxToSupportData(xhr, this);;
+          showErrorModal(`${error} - ${xhr.responseText}`, xhr);
         }
       })
     })
@@ -600,11 +636,11 @@
           $('#discord-settings-notifications-connectionlost-select').addClass("bg-success").removeClass(
             "bg-danger");
         },
-        error: (xhr, status, error) => {
+        error: function (xhr, status, error) {
           $('#discord-settings-notifications-connectionlost-select').addClass("bg-danger").removeClass(
             "bg-success");
-          displayAjaxToSupportData(xhr, this.URL);;
-          showErrorModal(`${error} - ${xhr.responseText}`);
+          displayAjaxToSupportData(xhr, this);;
+          showErrorModal(`${error} - ${xhr.responseText}`, xhr);
         }
       })
     })
@@ -628,11 +664,11 @@
           $('#discord-settings-notifications-countrybankick-select').addClass("bg-success").removeClass(
             "bg-danger");
         },
-        error: (xhr, status, error) => {
+        error: function (xhr, status, error) {
           $('#discord-settings-notifications-countrybankick-select').addClass("bg-danger").removeClass(
             "bg-success");
-          displayAjaxToSupportData(xhr, this.URL);;
-          showErrorModal(`${error} - ${xhr.responseText}`);
+          displayAjaxToSupportData(xhr, this);;
+          showErrorModal(`${error} - ${xhr.responseText}`, xhr);
         }
       })
     })
@@ -655,11 +691,11 @@
           $('#discord-settings-notifications-ticket-select').addClass("bg-success").removeClass(
             "bg-danger");
         },
-        error: (xhr, status, error) => {
+        error: function (xhr, status, error) {
           $('#discord-settings-notifications-ticket-select').addClass("bg-danger").removeClass(
             "bg-success");
-          displayAjaxToSupportData(xhr, this.URL);;
-          showErrorModal(`${error} - ${xhr.responseText}`);
+          displayAjaxToSupportData(xhr, this);;
+          showErrorModal(`${error} - ${xhr.responseText}`, xhr);
         }
       })
     })
@@ -683,11 +719,11 @@
           $('#discord-settings-notifications-cronjob-select').addClass("bg-success").removeClass(
             "bg-danger");
         },
-        error: (xhr, status, error) => {
+        error: function (xhr, status, error) {
           $('#discord-settings-notifications-cronjob-select').addClass("bg-danger").removeClass(
             "bg-success");
-          displayAjaxToSupportData(xhr, this.URL);;
-          showErrorModal(`${error} - ${xhr.responseText}`);
+          displayAjaxToSupportData(xhr, this);;
+          showErrorModal(`${error} - ${xhr.responseText}`, xhr);
         }
       })
     })
@@ -710,11 +746,11 @@
           $("#discord-settings-notifications-gbl-select").addClass("bg-success").removeClass(
             "bg-danger");
         },
-        error: (xhr, status, error) => {
+        error: function (xhr, status, error) {
           $("#discord-settings-notifications-gbl-select").addClass("bg-danger").removeClass(
             "bg-success");
-          displayAjaxToSupportData(xhr, this.URL);;
-          showErrorModal(`${error} - ${xhr.responseText}`);
+          displayAjaxToSupportData(xhr, this);;
+          showErrorModal(`${error} - ${xhr.responseText}`, xhr);
         }
       })
     })

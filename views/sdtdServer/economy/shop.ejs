@@ -23,6 +23,7 @@
           </th>
           <th scope="col">Amount</th>
           <th scope="col">Quality</th>
+          <th scope="col">Delete</th>
         </tr>
       </thead>
       <tbody>
@@ -39,6 +40,12 @@
           <td>
             <%= item.quality %>
           </td>
+          <td>
+            <button type="button" class="btn btn-danger btn-sm modal-delete-btn" data-toggle="modal"
+              data-target="#delete-claim-modal" data-id="<%= item.id %>">
+              Delete
+            </button>
+          </td>
         </tr>
 
         <% }) %>
@@ -47,6 +54,30 @@
     </table>
 
     <% } %>
+  </div>
+</div>
+
+
+
+<!-- Modal -->
+<div class="modal fade" id="delete-claim-modal" tabindex="-1" role="dialog" aria-labelledby="delete-claim-title"
+  aria-hidden="true">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Delete item from claimed list</h5>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body">
+        Are you sure? There is no turning back.
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-primary" data-dismiss="modal">Close</button>
+        <button type="button" class="btn btn-danger" id="confirm-delete-claim">Confirm</button>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -64,7 +95,8 @@
 
 
     <!-- Modal -->
-    <div class="modal fade" id="shop-add" tabindex="-1" role="dialog" aria-labelledby="shop-add-title" aria-hidden="true">
+    <div class="modal fade" id="shop-add" tabindex="-1" role="dialog" aria-labelledby="shop-add-title"
+      aria-hidden="true">
       <div class="modal-dialog modal-lg" role="document">
         <div class="modal-content">
           <div class="modal-header">
@@ -90,7 +122,8 @@
 
             <div class="form-group">
               <label for="add-friendlyName">Item friendly name</label>
-              <input type="text" class="form-control" name="add-friendlyName" id="add-friendlyName" aria-describedby="add-friendlyName-help">
+              <input type="text" class="form-control" name="add-friendlyName" id="add-friendlyName"
+                aria-describedby="add-friendlyName-help">
               <small id="add-friendlyName-help" class="form-text text-muted">This will be shown large to your players
                 and should be used to differentiate the listings
               </small>
@@ -98,7 +131,8 @@
 
             <div class="form-group">
               <label for="add-amount">Amount</label>
-              <input type="text" class="form-control" name="add-amount" id="add-amount" aria-describedby="add-amount-help">
+              <input type="text" class="form-control" name="add-amount" id="add-amount"
+                aria-describedby="add-amount-help">
               <small id="add-amount-help" class="form-text text-muted">The amount of this item that will be given to
                 the player when this listing is bought.
               </small>
@@ -106,7 +140,8 @@
 
             <div class="form-group">
               <label for="add-quality">Quality</label>
-              <input type="text" class="form-control" name="add-quality" id="add-quality" aria-describedby="add-quality-help">
+              <input type="text" class="form-control" name="add-quality" id="add-quality"
+                aria-describedby="add-quality-help">
               <small id="add-quality-help" class="form-text text-muted">Quality of the item. If amount is larger than
                 one, you cannot set this. <em>For items without a quality ingame, you must set this to 0!</em></small>
             </div>
@@ -115,6 +150,14 @@
               <label for="add-price">Price</label>
               <input type="text" class="form-control" name="add-price" id="add-price" aria-describedby="add-price-help">
               <small id="add-price-help" class="form-text text-muted">How much players pay to buy this listing</small>
+            </div>
+
+            <div class="form-group">
+              <label for="add-customIcon">Custom icon</label>
+              <input type="text" class="form-control" name="add-customIcon" id="add-customIcon"
+                aria-describedby="add-customIcon-help">
+              <small id="add-customIcon-help" class="form-text text-muted">Use a different icon than the default item
+                name.</small>
             </div>
 
           </div>
@@ -171,8 +214,8 @@
       </div>
     </div>
 
-    <a name="export-listings" id="export-listings" class="btn btn-secondary" href="/api/shop/export?serverId=<%= server.id %>"
-      role="button">Export to file</a>
+    <a name="export-listings" id="export-listings" class="btn btn-secondary"
+      href="/api/shop/export?serverId=<%= server.id %>" role="button">Export to file</a>
 
 
 
@@ -197,7 +240,13 @@
     <div class="card-columns">
       <% listings.forEach(listing => { %>
       <div style="text-align: center" class="card">
-        <img class="card-img-top" src="/images/sdtdIcons/<%= listing.name %>.png" alt="<%= listing.name %>" style="width: 25%">
+        <% if(listing.iconName) { %>
+        <img class="card-img-top" src="/images/sdtdIcons/<%= listing.iconName %>.png" alt="<%= listing.name %>"
+          style="max-width: 25%; max-height: 25%;">
+        <% } else { %>
+        <img class="card-img-top" src="/images/sdtdIcons/<%= listing.name %>.png" alt="<%= listing.name %>"
+          style="max-width: 25%; max-height: 25%;">
+        <% } %>
         <div class="card-body">
           <h4 class="card-title">
             <%=  listing.friendlyName ?  listing.friendlyName : listing.name%>
@@ -216,15 +265,20 @@
             </li>
             <% } %>
             <li class="list-group-item">Price:
+              <% if(player.role.economyDeductMultiplier !== 1) { %>
+              <s><%= listing.price %></s> <%= listing.price * player.role.economyDeductMultiplier %>
+              <% } else { %>
               <%= listing.price %>
+              <% } %>
+
             </li>
           </ul>
         </div>
         <div class="card-footer">
 
           <div class="form-group">
-            <input type="number" class="form-control" name="shop-buy-amount-<%= listing.id %>" id="shop-buy-amount-<%= listing.id %>"
-              value="1">
+            <input type="number" class="form-control" name="shop-buy-amount-<%= listing.id %>"
+              id="shop-buy-amount-<%= listing.id %>" value="1">
           </div>
 
           <button class="btn shop-buy btn-success" value="<%= listing.id %>">
@@ -240,8 +294,8 @@
           </button>
 
           <!-- Modal -->
-          <div class="modal fade" id="shop-edit<%= listing.id %>" tabindex="-1" role="dialog" aria-labelledby="shop-edit-<%= listing.id %>-title"
-            aria-hidden="true">
+          <div class="modal fade" id="shop-edit<%= listing.id %>" tabindex="-1" role="dialog"
+            aria-labelledby="shop-edit-<%= listing.id %>-title" aria-hidden="true">
             <div class="modal-dialog" role="document">
               <div class="modal-content">
                 <div class="modal-header">
@@ -256,24 +310,27 @@
 
                   <div class="form-group">
                     <label for="edit-<%= listing.id %>-name">Item name</label>
-                    <input type="text" class="form-control" name="edit-<%= listing.id %>-name" id="edit-<%= listing.id %>-name"
-                      aria-describedby="edit-<%=listing.id%>-name-help" placeholder="<%= listing.name %>">
+                    <input type="text" class="form-control" name="edit-<%= listing.id %>-name"
+                      id="edit-<%= listing.id %>-name" aria-describedby="edit-<%=listing.id%>-name-help"
+                      value="<%= listing.name %>">
                     <small id="edit-<%=listing.id%>-name-help" class="form-text text-muted">The name of the ingame
                       item. Make sure this is spelled 100% correctly.</small>
                   </div>
 
                   <div class="form-group">
                     <label for="edit-<%= listing.id %>-friendlyName">Item friendly name</label>
-                    <input type="text" class="form-control" name="edit-<%= listing.id %>-friendlyName" id="edit-<%= listing.id %>-friendlyName"
-                      aria-describedby="edit-<%=listing.id%>-friendlyName-help" placeholder="<%= listing.friendlyName %>">
+                    <input type="text" class="form-control" name="edit-<%= listing.id %>-friendlyName"
+                      id="edit-<%= listing.id %>-friendlyName" aria-describedby="edit-<%=listing.id%>-friendlyName-help"
+                      value="<%= listing.friendlyName %>">
                     <small id="edit-<%=listing.id%>-friendlyName-help" class="form-text text-muted">This will be shown
                       large to your players and should be used to differentiate the listings</small>
                   </div>
 
                   <div class="form-group">
                     <label for="edit-<%= listing.id %>-amount">Amount</label>
-                    <input type="text" class="form-control" name="edit-<%= listing.id %>-amount" id="edit-<%= listing.id %>-amount"
-                      aria-describedby="edit-<%=listing.id%>-amount-help" placeholder="<%= listing.amount %>">
+                    <input type="text" class="form-control" name="edit-<%= listing.id %>-amount"
+                      id="edit-<%= listing.id %>-amount" aria-describedby="edit-<%=listing.id%>-amount-help"
+                      value="<%= listing.amount %>">
                     <small id="edit-<%=listing.id%>-amount-help" class="form-text text-muted">The amount of this item
                       that will be given to the player when this listing is bought.
                     </small>
@@ -281,8 +338,9 @@
 
                   <div class="form-group">
                     <label for="edit-<%= listing.id %>-quality">Quality</label>
-                    <input type="text" class="form-control" name="edit-<%= listing.id %>-quality" id="edit-<%= listing.id %>-quality"
-                      aria-describedby="edit-<%=listing.id%>-quality-help" placeholder="<%= listing.quality %>">
+                    <input type="text" class="form-control" name="edit-<%= listing.id %>-quality"
+                      id="edit-<%= listing.id %>-quality" aria-describedby="edit-<%=listing.id%>-quality-help"
+                      value="<%= listing.quality %>">
                     <small id="edit-<%=listing.id%>-quality-help" class="form-text text-muted">Quality of the item. If
                       amount is larger than one, you cannot set this.
                     </small>
@@ -290,10 +348,20 @@
 
                   <div class="form-group">
                     <label for="edit-<%= listing.id %>-price">Price</label>
-                    <input type="text" class="form-control" name="edit-<%= listing.id %>-price" id="edit-<%= listing.id %>-price"
-                      aria-describedby="edit-<%=listing.id%>-price-help" placeholder="<%= listing.price %>">
+                    <input type="text" class="form-control" name="edit-<%= listing.id %>-price"
+                      id="edit-<%= listing.id %>-price" aria-describedby="edit-<%=listing.id%>-price-help"
+                      value="<%= listing.price %>">
                     <small id="edit-<%=listing.id%>-price-help" class="form-text text-muted">How much players pay to
                       buy this listing</small>
+                  </div>
+
+                  <div class="form-group">
+                    <label for="edit-<%= listing.id %>-customIcon">Custom icon</label>
+                    <input type="text" class="form-control" name="edit-<%= listing.id %>-customIcon"
+                      id="edit-<%= listing.id %>-customIcon" aria-describedby="edit-<%=listing.id%>-customIcon-help"
+                      value="<%= listing.customIcon %>">
+                    <small id="edit-<%=listing.id%>-customIcon-help" class="form-text text-muted">Use a different icon
+                      than the default item name.</small>
                   </div>
 
                 </div>
@@ -342,6 +410,8 @@
   $(document).ready(function () {
 
     let availableItems;
+    // Used for deleting a claimed item
+    let selectedClaim;
 
     $.ajax({
       url: "/api/sdtdserver/availableItems",
@@ -354,9 +424,9 @@
       success: (data, status, xhr) => {
         availableItems = data;
       },
-      error: (xhr, status, error) => {
-        displayAjaxToSupportData(xhr, this.URL);;
-        showErrorModal(`${error} - ${xhr.responseText}`);
+      error: function (xhr, status, error) {
+        displayAjaxToSupportData(xhr, this);;
+        showErrorModal(`${error} - ${xhr.responseText}`, xhr);
       }
     });
 
@@ -397,30 +467,37 @@
         [0, 'desc']
       ],
       columns: [{
-          data: "friendlyName",
-        },
-        {
-          data: 'name'
-        },
-        {
-          data: 'price'
-        },
-        {
-          data: 'amount'
-        },
-        {
-          data: 'quality',
-        },
-        {
-          data: 'timesBought',
-        },
-        {
-          data: 'id',
-          render: function (data, type, row, meta) {
-            return `      <button class="btn shop-buy btn-success" value="${data}">
-                Buy</button>`
+        data: "friendlyName",
+      },
+      {
+        data: 'name'
+      },
+      {
+        data: 'price',
+        render: function (data, type, row, meta) {
+          if (window.SAILS_LOCALS.player.role.economyDeductMultiplier !== 1) {
+            return `<s>${row.price} </s> ${row.price * window.SAILS_LOCALS.player.role.economyDeductMultiplier}`
+          } else {
+            return row.price
           }
         }
+      },
+      {
+        data: 'amount'
+      },
+      {
+        data: 'quality',
+      },
+      {
+        data: 'timesBought',
+      },
+      {
+        data: 'id',
+        render: function (data, type, row, meta) {
+          return `      <button class="btn shop-buy btn-success" value="${data}">
+                Buy</button>`
+        }
+      }
       ]
     })
 
@@ -443,6 +520,7 @@
       let amount = emptyStringToUndefined($(`#add-amount`).val());
       let quality = emptyStringToUndefined($(`#add-quality`).val());
       let price = emptyStringToUndefined($(`#add-price`).val());
+      let customIcon = emptyStringToUndefined($(`#add-customIcon`).val());
 
       if (!name && !amount && !price) {
         return $(`#add-listing-status`).text("Name amount and price are required values");
@@ -459,25 +537,24 @@
           friendlyName: friendlyName,
           amount: amount,
           quality: quality,
-          price: price
+          price: price,
+          customIcon: customIcon
         },
         success: (data, status, xhr) => {
           location.reload();
         },
-        error: (xhr, status, error) => {
-          showErrorModal(`${error} - ${xhr.responseText}`);
-          displayAjaxToSupportData(xhr, this.URL);
+        error: function (xhr, status, error) {
+          showErrorModal(`${error} - ${xhr.responseText}`, xhr);
+          displayAjaxToSupportData(xhr, this);
         }
       })
     })
 
 
-    $(".shop-buy").click(e => {
-
+    $('body').on('click', '.shop-buy', e => {
       let listingId = e.target.value;
       let amount = $(`#shop-buy-amount-${listingId}`).val();
       let playerId = window.SAILS_LOCALS.player.id;
-
       if (amount < 1) {
         return alert('You must buy at least one.')
       }
@@ -494,12 +571,12 @@
         success: (data, status, xhr) => {
           location.reload();
         },
-        error: (xhr, status, error) => {
+        error: function (xhr, status, error) {
           if (xhr.responseText == "\"You do not have enough money to buy this!\"") {
             return alert(`You do not have enough money to buy this item`)
           }
-          showErrorModal(`${error} - ${xhr.responseText}`);
-          displayAjaxToSupportData(xhr, this.URL);
+          showErrorModal(`${error} - ${xhr.responseText}`, xhr);
+          displayAjaxToSupportData(xhr, this);
         }
       })
 
@@ -526,6 +603,7 @@
       let amount = emptyStringToUndefined($(`#edit-${listingId}-amount`).val());
       let quality = emptyStringToUndefined($(`#edit-${listingId}-quality`).val());
       let price = emptyStringToUndefined($(`#edit-${listingId}-price`).val());
+      let customIcon = emptyStringToUndefined($(`#edit-${listingId}-customIcon`).val());
 
       if (!name && !friendlyName && !amount && !quality && !price) {
         return $(`#edit-${listingId}-status`).text("You must change atleast one of the values!")
@@ -542,14 +620,15 @@
           friendlyName: friendlyName,
           amount: amount,
           quality: quality,
-          price: price
+          price: price,
+          customIcon: customIcon,
         },
         success: (data, status, xhr) => {
           location.reload();
         },
-        error: (xhr, status, error) => {
-          displayAjaxToSupportData(xhr, this.URL);
-          showErrorModal(`${error} - ${xhr.responseText}`);
+        error: function (xhr, status, error) {
+          displayAjaxToSupportData(xhr, this);
+          showErrorModal(`${error} - ${xhr.responseText}`, xhr);
         }
       })
     })
@@ -567,9 +646,9 @@
         success: (data, status, xhr) => {
           location.reload();
         },
-        error: (xhr, status, error) => {
-          displayAjaxToSupportData(xhr, this.URL);
-          showErrorModal(`${error} - ${xhr.responseText}`);
+        error: function (xhr, status, error) {
+          displayAjaxToSupportData(xhr, this);
+          showErrorModal(`${error} - ${xhr.responseText}`, xhr);
         }
       })
     })
@@ -590,7 +669,7 @@
         success: (data, status, xhr) => {
           location.reload();
         },
-        error: (xhr, status, error) => {
+        error: function (xhr, status, error) {
           $("#import-problems").removeClass('invisible');
           $("#import-problems").empty();
           if (_.isArray(xhr.responseJSON)) {
@@ -602,6 +681,35 @@
       })
     })
 
+    $("#confirm-delete-claim").click(e => {
+      $.ajax({
+        url: "/api/shop/claim",
+        method: "DELETE",
+        data: {
+          claimId: selectedClaim,
+          serverId: window.SAILS_LOCALS.server.id,
+          _csrf: window.SAILS_LOCALS._csrf,
+        },
+        success: (data, status, xhr) => {
+          location.reload();
+        },
+        error: function (xhr, status, error) {
+          displayAjaxToSupportData(xhr, this);
+          showErrorModal(`${error} - ${xhr.responseText}`, xhr);
+        }
+      })
+    });
+
+    $(".modal-delete-btn").click(e => {
+      selectedClaim = $(e.target).data('id');
+    })
+
   })
 
 </script>
+
+<style>
+  .card-columns {
+    column-count: 4;
+  }
+</style>

@@ -46,7 +46,7 @@ module.exports = function defineCustomDiscordNotificationHook(sails) {
 
           
           if (logMessage.includes(stringToSearchFor) && notification.enabled ) {
-            if (notification.ignoreServerChat && (logMessage.startsWith("chat: 'server':") || logMessage.includes('webcommandresult_for_say')) ) {
+            if (notification.ignoreServerChat && (logMessage.startsWith("chat (from '-non-player-',") || logMessage.includes('webcommandresult_for_say')) ) {
               
             } else {
               sendNotification(logLine, server, notification)
@@ -70,7 +70,6 @@ async function sendNotification(logLine, server, customNotif) {
 
     embed.setTitle(`Custom notification for ${server.name}`)
     .addField('Time', logLine.time, true)
-    .addField('Uptime', logLine.uptime, true)
     .addField('Message', logLine.msg)
     .addField('Triggered by', customNotif.stringToSearchFor)
     channel.send(embed);

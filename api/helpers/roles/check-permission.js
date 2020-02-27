@@ -44,13 +44,11 @@ module.exports = {
 
 
   fn: async function (inputs, exits) {
-
     if ((_.isUndefined(inputs.userId) || _.isUndefined(inputs.serverId)) && (_.isUndefined(inputs.discordId) || _.isUndefined(inputs.serverId)) && _.isUndefined(inputs.playerId)) {
-      return exits.invalidInput('You must provide either userId AND serverID, discordId AND serverId or just a playerId' + JSON.stringify(inputs));
+      return exits.invalidInput('You must provide either userId AND serverId, discordId AND serverId or just a playerId' + JSON.stringify(inputs));
     }
 
     let role;
-
     if (inputs.discordId) {
       let foundUser = await User.find({
         discordId: inputs.discordId
@@ -61,6 +59,14 @@ module.exports = {
     }
 
 
+    if (inputs.playerId) {
+      try {
+        await sails.helpers.discord.setRoleFromDiscord(inputs.playerId);
+      } catch (error) {
+        sails.log.debug(`Couldn't update players roles via discord - ${error}`)
+      }
+    }
+
     if (inputs.userId && inputs.serverId) {
       role = await sails.helpers.roles.getUserRole(inputs.userId, inputs.serverId);
     }
@@ -69,22 +75,16 @@ module.exports = {
       role = await sails.helpers.sdtd.getPlayerRole(inputs.playerId);
     }
 
-    // If we find no role for a player, we default to highest level role.
     if (_.isUndefined(role)) {
-      let foundRole = await Role.find({
-        where: {
-          server: inputs.serverId
-        },
-        sort: 'level DESC',
-        limit: 1
-      });
-      role = foundRole[0]
+      role = await sails.helpers.roles.getDefaultRole(inputs.serverId);
     }
 
     let hasPermission = false;
 
     if (!_.isUndefined(inputs.userId)) {
       let foundUser = await User.findOne(inputs.userId);
+
+      // Override permission check when user is a system admin
       if (foundUser.steamId === sails.config.custom.adminSteamId) {
         foundRole = await Role.find({
           where: {
@@ -92,7 +92,7 @@ module.exports = {
           },
           sort: 'level ASC',
           limit: 1
-        })
+        });
         if (foundRole[0]) {
           role = foundRole[0];
         }
@@ -108,6 +108,7 @@ module.exports = {
       hasPermission = true
     }
 
+    // Check if the user owns the server on CSMM, in that case we will always return true.
     if (!_.isUndefined(inputs.userId) && !hasPermission) {
       let server = await SdtdServer.findOne(inputs.serverId);
 
@@ -115,8 +116,6 @@ module.exports = {
         hasPermission = true;
       }
     }
-
-
 
     sails.log.debug(`Checked if ${inputs.playerId ? `player ${inputs.playerId}` : `user ${inputs.userId}`} has permission ${inputs.permission} - ${hasPermission}`)
 

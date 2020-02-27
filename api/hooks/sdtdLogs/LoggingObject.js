@@ -1,160 +1,204 @@
-const SdtdApi = require('7daystodie-api-wrapper');
-const EventEmitter = require('events');
-const handleLogLine = require('./handleLogLine');
+const SdtdApi = require("7daystodie-api-wrapper");
+const EventEmitter = require("events");
+const Bull = require("bull");
+const logProcessor = require("./logProcessor");
+const enrichData = require("./enrichEventData");
+
+const { inspect } = require("util");
+
+const defaultIntervalMs = 2000;
+const slowModeIntervalms = 300000;
 
 class LoggingObject extends EventEmitter {
-
-  constructor(ip, port, authName, authToken, serverId, intervalTime = 2000) {
+  constructor(
+    ip,
+    port,
+    authName,
+    authToken,
+    serverId,
+    intervalTime = defaultIntervalMs
+  ) {
     super();
     this.server = {
       id: serverId,
       ip: ip,
       port: port,
       adminUser: authName,
-      adminToken: authToken,
+      adminToken: authToken
     };
+
+    this.active = true;
+    this.queue = new Bull(
+      `sdtdserver:${serverId}:logs`,
+      process.env.REDISSTRING
+    );
     this.intervalTime = intervalTime;
     this.requestInterval;
     this.failed = false;
-    this.lastLogLine;
-    // Keeps track of wheter a request is happening already. This is to block the interval from queueing massive amounts of requests.
-    this.handlingRequest = false;
-    this.lastMemUpdate = Date.now();
+    // Keep track of how many times we receive an empty response.
+    // If we get too many empty responses, we force a recheck of lastLogLine
+    this.emptyResponses = 0;
     // Set this to true to view detailed info about logs for a server. (protip: use discord bot eval command to set this to true in production instances)
     this.debug = false;
+    this.queue.process(logProcessor);
     this.init();
+    this.queue.on("completed", (job, result) =>
+      this.handleCompletedJob(job, result, this)
+    );
+    this.queue.on("failed", (job, err) => this.handleFailedJob(job, err, this));
+    this.queue.on("error", this.handleError);
+    this.queue.on("cleaned", function(jobs, type) {
+      sails.log.debug("Cleaned %s %s jobs", jobs.length, type);
+    });
   }
 
-  async init() {
+  async init(ms = parseInt(process.env.CSMM_LOG_CHECK_INTERVAL)) {
+    if (!ms) {
+      ms = 3000;
+    }
 
-    await this._getLatestLogLine();
+    // Make sure there are no lingering jobs
+    await this.stop();
 
-    // Get new logs in a timed interval
-    this.requestInterval = setInterval(this._intervalFunction.bind(this), this.intervalTime);
+    try {
+      await this.setLastLogLine();
+    } catch (error) {
+      // Fail silently
+    }
+    return await this.queue.add(
+      {
+        server: this.server,
+        lastLogLine: this.lastLogLine
+      },
+      {
+        repeat: {
+          every: ms
+        },
+        removeOnFail: 50,
+        removeOnComplete: 200,
+        timeout: 10000
+      }
+    );
   }
 
+  async reload() {
+    await this.stop();
+    // If no timeout here, some race condition happens. This is "good enough".
+    setTimeout(() => this.init(), 2000);
+  }
 
-  stop() {
-    clearInterval(this.requestInterval);
+  async handleError(error) {
+    sails.log.error(inspect(error));
+  }
+
+  async handleFailedJob(job, err, loggingObject) {
+    // A job failed with reason `err`!
+    sails.log.error(`Queue error: ${inspect(err)}`);
+    await loggingObject._failedHandler();
+    return;
+  }
+
+  async handleCompletedJob(job, result, loggingObject) {
+    if (result.logs.length === 0) {
+      this.emptyResponses++;
+    }
+
+    if (this.emptyResponses > 5) {
+      await this.setLastLogLine();
+    }
+
+    for (const newLog of result.logs) {
+      let enrichedLog = newLog;
+      if (newLog.type !== "logLine") {
+        enrichedLog = await enrichData(newLog);
+      }
+      if (this.debug) {
+        sails.log.debug(
+          `Log line for server ${this.server.id} - ${newLog.type} - ${newLog.data.msg}`
+        );
+      }
+      loggingObject.emit(newLog.type, enrichedLog.data);
+    }
+
+    // If the server is in slowmode and we receive data again, this shows the server is back online
+    if (this.slowmode) {
+      this.slowmode = false;
+      await this.stop();
+      await this.init();
+    }
+
+    await this.setFailedToZero();
+    //await this.setLastLogLine();
+  }
+
+  async destroy() {
+    await this.stop();
+    this.removeAllListeners();
+    return;
+  }
+
+  async stop() {
+    await this.queue.empty();
+    await this.queue.clean(0, "completed");
+    await this.queue.clean(0, "failed");
+    return;
   }
 
   _toggleDebug() {
     this.debug = !this.debug;
   }
 
-  // Used for testing purposes
-  _sendMockMemUpdate() {
-    let event = {
-      type: 'memUpdate',
-      data: {
-        fps: '34.55',
-        heap: '847.3MB',
-        chunks: '198',
-        zombies: '1',
-        entities: '2',
-        players: '1',
-        items: '3',
-        rss: '1946.6MB',
-        uptime: '758.965'
-      }
-    };
-
-    if (!this._checkDuplicateMemUpdate(event, {
-        date: "n/a",
-        time: "n/a"
-      })) {
-      this.emit(event.type, event.data);
-    }
+  async setFailedToZero() {
+    await sails.helpers.redis.set(
+      `sdtdserver:${this.server.id}:sdtdLogs:failedCounter`,
+      0
+    );
   }
 
-  async _getLatestLogLine() {
-    try {
-      const webUIUpdate = await SdtdApi.getWebUIUpdates(this.server);
-
-      if (this.debug) {
-        sails.log.debug(`SdtdLogs - DEBUG MESSAGE - Latest log line for server ${this.server.id} is ${webUIUpdate.newlogs}`);
-      }
-
-      this.lastLogLine = parseInt(webUIUpdate.newlogs) + 1;
-
-    } catch (error) {
-      this.failed = true;
-      if (this.debug) {
-        sails.log.debug(`Error when getting latest log line for server with ip ${this.server.ip} - ${error}`);
-      }
-
-      return 0;
-    }
+  async setLastLogLine() {
+    const webUIUpdate = await SdtdApi.getWebUIUpdates(this.server);
+    const lastLogLine = parseInt(webUIUpdate.newlogs) + 1;
+    await sails.helpers.redis.set(
+      `sdtdserver:${this.server.id}:sdtdLogs:lastLogLine`,
+      lastLogLine
+    );
+    this.emptyResponses = 0;
+    return lastLogLine;
   }
 
-  async _intervalFunction() {
-    let newLogs = {};
+  // Called when a request to a server fails for whatever reason
+  async _failedHandler() {
+    const threeDaysInMs = 1000 * 60 * 60 * 24 * 3;
+    this.failed = true;
+    let counter = await sails.helpers.redis.incr(
+      `sdtdserver:${this.server.id}:sdtdLogs:failedCounter`
+    );
+    let lastSuccess = await sails.helpers.redis.get(
+      `sdtdserver:${this.server.id}:sdtdLogs:lastSuccess`
+    );
+    lastSuccess = parseInt(lastSuccess);
+    if (counter > 100) {
+      let prettyLastSuccess = new Date(lastSuccess);
 
-    if (this.handlingRequest && this.debug) {
-      sails.log.debug(`SdtdLogs - DEBUG MESSAGE - Waiting for a request already, skipping this one.`);
-      return;
-    }
-
-    if (this.failed) {
-      await this._getLatestLogLine();
-    }
-
-
-
-    try {
-      this.handlingRequest = true;
-      newLogs = await SdtdApi.getLog(this.server, this.lastLogLine);
-      this.lastLogLine = this.lastLogLine + newLogs.entries.length;
-      this.failed = false;
-    } catch (error) {
-      this.failed = true;
-      newLogs.entries = [];
-    }
-    if (this.debug && newLogs.entries.length > 0) {
-      sails.log.debug(`SdtdLogs - DEBUG MESSAGE - found ${newLogs.entries.length} new logs for server ${this.server.id}. Latest line: ${this.lastLogLine} First line ${newLogs.entries[0].time}, last line ${newLogs.entries[newLogs.entries.length - 1].time}`);
-    }
-
-    _.each(newLogs.entries, async line => {
-      this.emit('logLine', line);
-      if (this.debug) {
-        sails.log.verbose(`SdtdLogs - DEBUG MESSAGE - server ${this.server.id} --- ${line.msg}`)
+      if (!this.slowmode) {
+        sails.log.info(
+          `SdtdLogs - Server ${
+            this.server.id
+          } has failed ${counter} times. Changing interval time. Server was last successful on ${prettyLastSuccess.toLocaleDateString()} ${prettyLastSuccess.toLocaleTimeString()}`
+        );
+        this.slowmode = true;
+        await this.stop();
+        await this.init(300000);
       }
 
-      let parsedLogLine = handleLogLine(line);
-      if (parsedLogLine) {
-
-        if (!this._checkDuplicateMemUpdate(parsedLogLine, line)) {
-          this.emit(parsedLogLine.type, parsedLogLine.data);
-        }
+      if (lastSuccess + threeDaysInMs < Date.now()) {
+        sails.log.warn(
+          `SdtdLogs - server ${this.server.id} has not responded in over 3 days, setting to inactive`
+        );
+        await sails.helpers.meta.setServerInactive(this.server.id);
       }
-    });
-
-    this.lastLogLine = newLogs.lastLine;
-    this.handlingRequest = false;
-  }
-
-
-  _checkDuplicateMemUpdate(parsedLogLine, line) {
-    if (parsedLogLine.type === "memUpdate") {
-      let currentDate = Date.now();
-      let lastMemUpdate = this.lastMemUpdate;
-      if (currentDate < lastMemUpdate + 25000) {
-        
-        if (this.debug) {
-          sails.log.debug(`SdtdLogs - DEBUG MESSAGE - Detected memUpdate happening too soon for server ${this.server.id} - discarding event at ${line.date} ${line.time}`);
-        }
-        
-        return true;
-      } else {
-        this.lastMemUpdate = currentDate;
-        return false;
-      }
-
-    } else {
-      return false;
     }
   }
-
 }
 
 module.exports = LoggingObject;

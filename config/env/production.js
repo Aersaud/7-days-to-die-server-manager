@@ -19,30 +19,8 @@
  * https://sailsjs.com/docs/concepts/deployment
  */
 
-const winston = require('winston');
+customLogger = require('../customLog').customLogger;
 
-customLogger = new winston.Logger({
-  transports: [
-    new winston.transports.Console({
-      level: process.env.LOGLEVEL === "" ? 'info' : 'debug',
-      colorize: true,
-      timestamp: true,
-      humanReadableUnhandledException: true
-    }),
-    new winston.transports.File({
-      level: process.env.LOGLEVEL === "" ? 'info' : 'debug',
-      name: 'csmm-log',
-      timestamp: true,
-      humanReadableUnhandledException: true,
-      filename: './logs/csmm.log',
-      tailable: true,
-      maxsize: 10000,
-      maxFiles: 3,
-      json: false,
-      colorize: true
-    }),
-  ]
-});
 
 let useRedis = false;
 if (process.env.REDISSTRING !== "") {
@@ -77,8 +55,15 @@ let production = {
      *                                                                          *
      ***************************************************************************/
     default: {
+      adapter: 'sails-mysql',
       url: process.env.DBSTRING
     },
+
+    cache: {
+      adapter: 'sails-redis',
+      url: process.env.REDISSTRING,
+    },
+
 
   },
 
@@ -172,7 +157,7 @@ let production = {
    *                                                                          *
    ***************************************************************************/
   session: {
-
+    adapter: '@sailshq/connect-redis',
     /***************************************************************************
      *                                                                          *
      * Production session store configuration.                                  *
@@ -188,6 +173,7 @@ let production = {
      *                                                                          *
      ***************************************************************************/
 
+    url: useRedis ? process.env.REDISSTRING : undefined,
 
 
     /***************************************************************************
@@ -212,7 +198,7 @@ let production = {
      *                                                                          *
      ***************************************************************************/
     cookie: {
-      secure: false,
+      secure: true,
       maxAge: 24 * 60 * 60 * 1000 * 7, // 1 week
     },
 
@@ -381,14 +367,5 @@ let production = {
 
   },
 };
-
-if (process.env.REDISSTRING) {
-  production.datastores.cache = {
-    adapter: 'sails-redis',
-    url: process.env.REDISSTRING
-  }
-  production.session.adapter = "@sailshq/connect-redis"
-  production.session.url = process.env.REDISSTRING
-}
 
 module.exports = production;

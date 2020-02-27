@@ -24,12 +24,13 @@ module.exports = function sdtdLogs(sails) {
      * @private
      */
     initialize: function (cb) {
-      sails.on('hook:discordbot:loaded', async () => {
+      sails.on('hook:orm:loaded', async () => {
         sails.log.info('Initializing custom hook (`sdtdLogs`)');
 
         try {
           let enabledServers = await SdtdConfig.find({
-            loggingEnabled: true
+            loggingEnabled: true,
+            inactive: false,
           });
           for (let config of enabledServers) {
             await this.start(config.server)
@@ -55,16 +56,11 @@ module.exports = function sdtdLogs(sails) {
       try {
         if (!loggingInfoMap.has(serverID)) {
           sails.log.debug(`HOOKS - sdtdLogs - starting logging for server ${serverID}`);
-          await SdtdConfig.update({
-            server: serverID
-          }, {
-            loggingEnabled: true
-          });
           let loggingObj = await createLogObject(serverID);
           loggingInfoMap.set(serverID, loggingObj);
           sails.hooks.playertracking.start(serverID);
           sails.hooks.customdiscordnotification.start(serverID);
-          return
+          return;
         } else {
           throw new Error(`Tried to start logging for a server that already had it enabled`);
         }
@@ -82,19 +78,15 @@ module.exports = function sdtdLogs(sails) {
      * @method
      */
 
-    stop: async function (serverID) {
+    stop: function (serverID) {
       serverID = String(serverID);
       try {
         if (loggingInfoMap.has(serverID)) {
           sails.log.debug(`HOOKS - sdtdLogs - stopping logging for server ${serverID}`);
-          await SdtdConfig.update({
-            server: serverID
-          }, {
-            loggingEnabled: false
-          });
           let loggingObj = loggingInfoMap.get(serverID);
           loggingInfoMap.delete(serverID);
-          return loggingObj.stop();
+          loggingObj.destroy();
+          return;
         }
       } catch (error) {
         sails.log.error(`HOOKS - sdtdLogs - ${error}`);
@@ -113,6 +105,10 @@ module.exports = function sdtdLogs(sails) {
 
     getLoggingObject: function (serverId) {
       let obj = loggingInfoMap.get(String(serverId));
+
+      if (_.isUndefined(obj)) {
+        return new EventEmitter();
+      }
       return obj;
     },
 
@@ -153,19 +149,19 @@ module.exports = function sdtdLogs(sails) {
 
     eventEmitter.on('chatMessage', function (chatMessage) {
       chatMessage.server = _.omit(server, "authName", "authToken");
+      chatMessage.player = _.omit(chatMessage.player, 'inventory');
+
       sails.sockets.broadcast(server.id, 'chatMessage', chatMessage);
       sails.log.verbose(`Detected a chat message`, chatMessage);
     });
 
     eventEmitter.on('playerConnected', async function (connectedMsg) {
       connectedMsg.server = _.omit(server, "authName", "authToken");
-      let playerData = await sails.helpers.sdtd.loadPlayerData(server.id, connectedMsg.steamID);
-      connectedMsg.player = playerData[0];
       await sails.hooks.discordnotifications.sendNotification({
         serverId: server.id,
         notificationType: 'playerConnected',
-        player: playerData[0]
-      })
+        player: connectedMsg.player
+      });
       if (connectedMsg.country != null) {
         await Player.update({
           server: server.id,
@@ -175,19 +171,28 @@ module.exports = function sdtdLogs(sails) {
         })
       }
       sails.sockets.broadcast(server.id, 'playerConnected', connectedMsg);
+      connectedMsg.player = _.omit(connectedMsg.player, 'inventory');
       sails.log.verbose(`Detected a player connected`, connectedMsg);
+    });
+
+    
+    eventEmitter.on('playerJoined', async function (joinMsg) {
+      joinMsg.server = _.omit(server, "authName", "authToken");
+      joinMsg.player = _.omit(joinMsg.player, 'inventory');
+
+      sails.sockets.broadcast(server.id, 'playerJoined', joinMsg);
+      sails.log.verbose(`Detected a player joined`, joinMsg);
     });
 
     eventEmitter.on('playerDisconnected', async function (disconnectedMsg) {
       disconnectedMsg.server = _.omit(server, "authName", "authToken");
-      let playerData = await sails.helpers.sdtd.loadPlayerData(server.id, disconnectedMsg.playerID);
-      disconnectedMsg.player = playerData[0]
       await sails.hooks.discordnotifications.sendNotification({
         serverId: server.id,
         notificationType: 'playerDisconnected',
-        player: playerData[0]
-      })
+        player: disconnectedMsg.player
+      });
       sails.sockets.broadcast(server.id, 'playerDisconnected', disconnectedMsg);
+      disconnectedMsg.player = _.omit(disconnectedMsg.player, 'inventory');
       sails.log.verbose(`Detected a player disconnected`, disconnectedMsg);
     });
 

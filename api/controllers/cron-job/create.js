@@ -14,13 +14,15 @@ module.exports = {
       type: 'number',
       custom: async function (valueToCheck) {
         let foundServer = await SdtdServer.findOne(valueToCheck);
-        return foundServer
+        return foundServer;
       }
     },
 
     command: {
       required: true,
-      type: 'string'
+      type: 'string',
+      minLength: 3,
+      maxLength: 50000,
     },
 
     temporalValue: {
@@ -82,7 +84,6 @@ module.exports = {
     }
 
     let server = await SdtdServer.findOne(inputs.serverId);
-    let allowedCommands = await sails.helpers.sdtd.getAllowedCommands(server);
     let donatorRole = await sails.helpers.meta.checkDonatorStatus.with({ serverId: server.id });
 
     let maxCronJobs = sails.config.custom.donorConfig[donatorRole].maxCronJobs;
@@ -91,17 +92,6 @@ module.exports = {
     if (serverCronJobs.length >= maxCronJobs) {
       return exits.maxJobs(`You have set the max number of jobs already. You have ${serverCronJobs.length} jobs and are allowed ${maxCronJobs}`)
     }
-
-
-    let splitCommand = inputs.command.split(' ');
-
-    splitCommand[0] = splitCommand[0].toLowerCase();
-    let commandIdx = allowedCommands.indexOf(splitCommand[0].trim());
-
-    if (commandIdx === -1) {
-      return exits.badInput(`You entered an invalid command`);
-    }
-
 
     // Parse hours or minutes for users who can't read documentation ^_^
     if (inputs.hours) {

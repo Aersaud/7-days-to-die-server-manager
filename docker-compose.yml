@@ -1,0 +1,37 @@
+version: "3.7"
+
+services:
+  csmm:
+    build: .
+    #image: catalysm/csmm
+    depends_on:
+      - cache
+      - db
+    environment:
+      NODE_ENV: ${NODE_ENV:-production}
+      REDISSTRING: "redis://cache:6379"
+      DBSTRING: "mysql2://csmm:mysecretpasswordissosecure@db:3306/csmm"
+      CSMM_HOSTNAME: "https://csmm.example.com"
+      API_KEY_STEAM: ""
+      DISCORDBOTTOKEN: ""
+      DISCORDCLIENTSECRET: ""
+      DISCORDCLIENTID: ""
+      CSMM_ADMINS: ""
+    ports:
+      - 8000:8000
+    restart: unless-stopped
+  cache:
+    image: redis
+    volumes:
+      - ./redis-data:/data
+  db:
+    image: mariadb
+    volumes:
+      - ./db-data:/var/lib/mysql
+    environment:
+      MYSQL_DATABASE: "csmm"
+      MYSQL_USER: "csmm"
+      MYSQL_PASSWORD: "mysecretpasswordissosecure"
+      MYSQL_RANDOM_ROOT_PASSWORD: "true"
+volumes:
+  db-data:

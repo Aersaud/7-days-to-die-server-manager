@@ -1,4 +1,4 @@
-const sevenDays = require('machinepack-7daystodiewebapi');
+const sevenDays = require('7daystodie-api-wrapper');
 
 module.exports = {
 
@@ -36,45 +36,20 @@ module.exports = {
       let foundJob = await CronJob.findOne(inputs.jobId).populate('server');
 
       let commandsToExecute = foundJob.command.split(';');
-      let responses = new Array();
-
-      for (const commandToExec of commandsToExecute) {
-
-
-        if (commandToExec.includes("wait(")) {
-          let secondsToWaitStr = commandToExec.replace('wait(', '').replace(')', '');
-          let secondsToWait;
-
-          secondsToWait = parseInt(secondsToWaitStr);
-
-          if (secondsToWait < 1) {
-            return chatMessage.reply(`Cannot wait for a negative or 0 amount of seconds`);
-          }
-
-          if (isNaN(secondsToWait)) {
-            return responses.push(`Invalid wait() syntax! example: wait(5)`);
-          }
-
-          await delaySeconds(secondsToWait);
-          responses.push(`Waiting ${secondsToWait} seconds`);
-        } else {
-          let response = await execCmd(foundJob, commandToExec);
-          responses.push(response);
-
-        }
-
-      }
-
-      sails.log.debug(`Executed a cron job for server ${foundJob.server.name}`, _.omit(foundJob, 'server'));
+      const dateStarted = Date.now();
+      sails.log.debug(`Executing a cron job for server ${foundJob.server.name}`, _.omit(foundJob, 'server'));
+      let responses = await sails.helpers.sdtd.executeCustomCmd(foundJob.server, commandsToExecute);
 
       foundJob.responses = responses;
+      const dateEnded = Date.now();
+      sails.log.debug(`Executed a cron job for server ${foundJob.server.name} - took ${dateEnded - dateStarted} ms`, _.omit(foundJob, 'server'));
 
       if (foundJob.notificationEnabled) {
         await sails.hooks.discordnotifications.sendNotification({
           serverId: foundJob.server.id,
           job: foundJob,
           notificationType: "cronjob"
-        })
+        });
       }
 
 
@@ -90,22 +65,13 @@ module.exports = {
 };
 
 async function execCmd(job, command) {
-  return new Promise((resolve, reject) => {
-    sevenDays.executeCommand({
-      ip: job.server.ip,
-      port: job.server.webPort,
-      authName: job.server.authName,
-      authToken: job.server.authToken,
-      command: command.trim()
-    }).exec({
-      success: async (data) => {
-        resolve(data)
-      },
-      error: err => {
-        reject(err)
-      }
-    })
-  })
+  let response = sevenDays.executeConsoleCommand({
+    ip: job.server.ip,
+    port: job.server.webPort,
+    adminUser: job.server.authName,
+    adminToken: job.server.authToken,
+  }, command.trim());
+  return response;
 }
 
 

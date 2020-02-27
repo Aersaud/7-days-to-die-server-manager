@@ -14,7 +14,7 @@ module.exports = {
       type: 'number',
       custom: async (valueToCheck) => {
         let foundRole = await Role.findOne(valueToCheck);
-        return foundRole
+        return foundRole;
       },
     },
 
@@ -24,7 +24,12 @@ module.exports = {
 
     level: {
       type: 'number',
-      min: 0
+      min: 0,
+      max: 9999,
+    },
+
+    isDefault: {
+      type: 'boolean',
     },
 
     discordRole: {
@@ -94,6 +99,10 @@ module.exports = {
       type: 'boolean',
     },
 
+    immuneToBannedItemsList: {
+      type: 'boolean',
+    }
+
   },
 
 
@@ -103,6 +112,20 @@ module.exports = {
 
 
   fn: async function (inputs, exits) {
+
+    const role = await Role.findOne(inputs.roleId).populate('server');
+    const server = role.server;
+
+    // If another role is currently set as default, we must set that one to false.
+    // There can only be one default role per server.
+    if (inputs.isDefault) {
+      await Role.update({
+        server: server.id,
+        isDefault: true
+      }, {
+        isDefault: false,
+      });
+    }
 
     let updateObj = {
       name: inputs.name,
@@ -122,7 +145,9 @@ module.exports = {
       manageTickets: inputs.manageTickets,
       manageGbl: inputs.manageGbl,
       discordExec: inputs.discordExec,
-      discordLookup: inputs.discordLookup
+      discordLookup: inputs.discordLookup,
+      isDefault: inputs.isDefault,
+      immuneToBannedItemsList: inputs.immuneToBannedItemsList,
     };
 
     let updatedRole = await Role.update({
@@ -131,7 +156,7 @@ module.exports = {
 
     sails.log.info(`Updated a role for server ${updatedRole[0].server}`, updatedRole[0])
 
-    return exits.success(updatedRole);
+    return exits.success(updatedRole[0]);
 
   }
 

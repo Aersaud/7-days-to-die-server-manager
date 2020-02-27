@@ -23,8 +23,8 @@
 
     <input type="text" class="form-control" id="input-settings-commands-prefix" value="<%= config.commandPrefix %>">
 
-    <input name="input-settings-commands-prefix-set-btn" id="input-settings-commands-prefix-set-btn" class="btn btn-primary"
-      type="button" value="Set">
+    <input name="input-settings-commands-prefix-set-btn" id="input-settings-commands-prefix-set-btn"
+      class="btn btn-primary" type="button" value="Set">
   </div>
 
   <hr>
@@ -35,8 +35,8 @@
 
   <div class="form-check">
     <label class="form-check-label">
-      <input type="checkbox" class="form-check-input" name="input-settings-commands-calladmin-checkbox" id="input-settings-commands-calladmin-checkbox"
-        value="callAdmin"> Call admin
+      <input type="checkbox" class="form-check-input" name="input-settings-commands-calladmin-checkbox"
+        id="input-settings-commands-calladmin-checkbox" value="callAdmin"> Call admin
     </label>
     <p class="form-text text-muted">
       Lets players create support tickets ingame. You can view these from the website.
@@ -44,8 +44,8 @@
   </div>
   <div class="form-check">
     <label class="form-check-label">
-      <input type="checkbox" class="form-check-input" name="input-settings-commands-playerTeleports-checkbox" id="input-settings-commands-playerTeleports-checkbox"
-        value="playerTeleports"> Player teleports
+      <input type="checkbox" class="form-check-input" name="input-settings-commands-playerTeleports-checkbox"
+        id="input-settings-commands-playerTeleports-checkbox" value="playerTeleports"> Player teleports
     </label>
     <p class="form-text text-muted">
       CSMM's teleport system. Includes a suite of commands to set, remove, make public/private teleports.
@@ -54,7 +54,8 @@
 
   <div class="form-check">
     <label class="form-check-label">
-      <input type="checkbox" class="form-check-input" name="input-settings-commands-who-checkbox" id="input-settings-commands-who-checkbox">
+      <input type="checkbox" class="form-check-input" name="input-settings-commands-who-checkbox"
+        id="input-settings-commands-who-checkbox">
       Who
     </label>
     <p class="form-text text-muted">
@@ -65,7 +66,8 @@
 
   <div class="form-check">
     <label class="form-check-label">
-      <input type="checkbox" class="form-check-input" name="input-settings-commands-gimme-checkbox" id="input-settings-commands-gimme-checkbox">
+      <input type="checkbox" class="form-check-input" name="input-settings-commands-gimme-checkbox"
+        id="input-settings-commands-gimme-checkbox">
       Gimme
     </label>
     <p class="form-text text-muted">
@@ -73,9 +75,20 @@
     </p>
   </div>
 
+
   <div id="gimme-settings">
     <hr>
     <%- include('./gimmeModal', gimmeItems) %>
+  </div>
+
+  <div id="voteSettings">
+    <hr>
+    <%- include('./voteSettings') %>
+  </div>
+
+  <div id="replySettings">
+    <hr>
+    <%- include('./commandReplies') %>
   </div>
 
 
@@ -87,27 +100,28 @@
 
     <div class="form-group">
       <label for="">Max locations that players can set</label>
-      <input type="text" class="form-control" name="inputs-settings-commands-playerteleports-maxlocations" id="inputs-settings-commands-playerteleports-maxlocations"
+      <input type="text" class="form-control" name="inputs-settings-commands-playerteleports-maxlocations"
+        id="inputs-settings-commands-playerteleports-maxlocations"
         placeholder="<%= config.maxPlayerTeleportLocations %>">
-      <input name="inputs-settings-playerteleports-maxlocations-btn" id="inputs-settings-playerteleports-maxlocations-btn"
-        class="btn btn-primary" type="button" value="Set">
+      <input name="inputs-settings-playerteleports-maxlocations-btn"
+        id="inputs-settings-playerteleports-maxlocations-btn" class="btn btn-primary" type="button" value="Set">
     </div>
 
     <div class="form-group">
       <label for="">Time (in seconds) that a player has to wait before teleporting again</label>
-      <input type="text" class="form-control" name="inputs-settings-commands-playerteleports-timeout" id="inputs-settings-commands-playerteleports-timeout"
-        placeholder="<%= config.playerTeleportTimeout %>">
-      <input name="inputs-settings-playerteleports-timeout-btn" id="inputs-settings-playerteleports-timeout-btn" class="btn btn-primary"
-        type="button" value="Set">
+      <input type="text" class="form-control" name="inputs-settings-commands-playerteleports-timeout"
+        id="inputs-settings-commands-playerteleports-timeout" placeholder="<%= config.playerTeleportTimeout %>">
+      <input name="inputs-settings-playerteleports-timeout-btn" id="inputs-settings-playerteleports-timeout-btn"
+        class="btn btn-primary" type="button" value="Set">
     </div>
 
     <div class="form-group">
       <label for="">Time (in seconds) that a teleport will be delayed. This makes sure players cannot use tele to
         escape a dire situation.</label>
-      <input type="text" class="form-control" name="inputs-settings-commands-playerteleports-delay" id="inputs-settings-commands-playerteleports-delay"
-        placeholder="<%= config.playerTeleportDelay %>">
-      <input name="inputs-settings-playerteleports-delay-btn" id="inputs-settings-playerteleports-delay-btn" class="btn btn-primary"
-        type="button" value="Set">
+      <input type="text" class="form-control" name="inputs-settings-commands-playerteleports-delay"
+        id="inputs-settings-commands-playerteleports-delay" placeholder="<%= config.playerTeleportDelay %>">
+      <input name="inputs-settings-playerteleports-delay-btn" id="inputs-settings-playerteleports-delay-btn"
+        class="btn btn-primary" type="button" value="Set">
     </div>
 
   </div>
@@ -135,8 +149,8 @@
   </button>
 
   <!-- Modal -->
-  <div class="modal fade" id="custom-commands-import-modal" tabindex="-1" role="dialog" aria-labelledby="custom-commands-import-modal-title"
-    aria-hidden="true">
+  <div class="modal fade" id="custom-commands-import-modal" tabindex="-1" role="dialog"
+    aria-labelledby="custom-commands-import-modal-title" aria-hidden="true">
     <div class="modal-dialog modal-lg" role="document">
       <div class="modal-content">
         <div class="modal-header">
@@ -157,7 +171,8 @@
 
             <div class="form-group">
               <label for="custom-commands-import-json">Custom commands JSON</label>
-              <textarea class="form-control" name="custom-commands-import-json" id="custom-commands-import-json" rows="10"></textarea>
+              <textarea class="form-control" name="custom-commands-import-json" id="custom-commands-import-json"
+                rows="10"></textarea>
             </div>
 
             <div id="custom-commands-import-problems" class="alert alert-warning invisible" role="alert">
@@ -174,8 +189,8 @@
     </div>
   </div>
 
-  <a name="export-customcommands" id="export-custom-commands" class="btn btn-secondary" href="/api/sdtdserver/commands/export?serverId=<%= server.id %>"
-    role="button">Export to file</a>
+  <a name="export-customcommands" id="export-custom-commands" class="btn btn-secondary"
+    href="/api/sdtdserver/commands/export?serverId=<%= server.id %>" role="button">Export to file</a>
 
   <%- include('../commandsHelpButton') %>
 
@@ -199,7 +214,7 @@
         success: (data, status, xhr) => {
           location.reload();
         },
-        error: (xhr, status, error) => {
+        error: function (xhr, status, error) {
           $("#custom-commands-import-problems").removeClass('invisible');
           $("#custom-commands-import-problems").empty();
           if (_.isArray(xhr.responseJSON)) {
@@ -213,7 +228,7 @@
 
     function updateCommandsStatus() {
 
-      $("#input-settings-commands-who-checkbox").prop('checked', <%= config.enabledWho %>);
+      $("#input-settings-commands-who-checkbox").prop('checked', window.SAILS_LOCALS.config.enabledWho);
 
       $.get('/api/sdtdserver/commands', {
         serverId: window.SAILS_LOCALS.server.id
@@ -262,9 +277,9 @@
         success: (data, status, xhr) => {
 
         },
-        error: (xhr, status, error) => {
-          displayAjaxToSupportData(xhr, this.URL);
-          showErrorModal(`${error} - ${xhr.responseText}`);
+        error: function (xhr, status, error) {
+          displayAjaxToSupportData(xhr, this);
+          showErrorModal(`${error} - ${xhr.responseText}`, xhr);
         }
       });
     });
@@ -285,9 +300,9 @@
         success: (data, status, xhr) => {
 
         },
-        error: (xhr, status, error) => {
-          displayAjaxToSupportData(xhr, this.URL);
-          showErrorModal(`${error} - ${xhr.responseText}`);
+        error: function (xhr, status, error) {
+          displayAjaxToSupportData(xhr, this);
+          showErrorModal(`${error} - ${xhr.responseText}`, xhr);
         }
       });
     })
@@ -304,9 +319,9 @@
         success: (data, status, xhr) => {
           updateCommandsStatus();
         },
-        error: (xhr, status, error) => {
-          displayAjaxToSupportData(xhr, this.URL);;
-          showErrorModal(`${error} - ${xhr.responseText}`);
+        error: function (xhr, status, error) {
+          displayAjaxToSupportData(xhr, this);;
+          showErrorModal(`${error} - ${xhr.responseText}`, xhr);
         }
       })
     })
@@ -323,9 +338,9 @@
         success: (data, status, xhr) => {
           updateCommandsStatus();
         },
-        error: (xhr, status, error) => {
-          displayAjaxToSupportData(xhr, this.URL);;
-          showErrorModal(`${error} - ${xhr.responseText}`);
+        error: function (xhr, status, error) {
+          displayAjaxToSupportData(xhr, this);;
+          showErrorModal(`${error} - ${xhr.responseText}`, xhr);
         }
       })
     })
@@ -336,7 +351,7 @@
       let newPrefix = $("#input-settings-commands-prefix").val();
 
       if (newPrefix.length > 1) {
-        return alert(`Prefix is maximum one character!`)
+        return showErrorModal(`Prefix is maximum one character!`)
       }
 
       $.ajax({
@@ -350,9 +365,9 @@
         success: data => {
           $("#input-settings-commands-prefix").empty();
         },
-        error: (xhr, status, error) => {
-          displayAjaxToSupportData(xhr, this.URL);;
-          showErrorModal(`${error} - ${xhr.responseText}`);
+        error: function (xhr, status, error) {
+          displayAjaxToSupportData(xhr, this);;
+          showErrorModal(`${error} - ${xhr.responseText}`, xhr);
         }
       })
     })
@@ -371,9 +386,9 @@
           success: data => {
             $("#player-teleport-settings").fadeOut();
           },
-          error: (xhr, status, error) => {
-            displayAjaxToSupportData(xhr, this.URL);;
-            showErrorModal(`${error} - ${xhr.responseText}`);
+          error: function (xhr, status, error) {
+            displayAjaxToSupportData(xhr, this);;
+            showErrorModal(`${error} - ${xhr.responseText}`, xhr);
           }
         })
       } else {
@@ -384,9 +399,9 @@
             _csrf: window.SAILS_LOCALS._csrf,
             serverId: window.SAILS_LOCALS.server.id,
           },
-          error: (xhr, status, error) => {
-            displayAjaxToSupportData(xhr, this.URL);;
-            showErrorModal(`${error} - ${xhr.responseText}`);
+          error: function (xhr, status, error) {
+            displayAjaxToSupportData(xhr, this);;
+            showErrorModal(`${error} - ${xhr.responseText}`, xhr);
           },
           success: data => {
             $("#player-teleport-settings").fadeIn();
@@ -406,9 +421,9 @@
             serverId: window.SAILS_LOCALS.server.id,
           },
           success: data => {},
-          error: (xhr, status, error) => {
-            displayAjaxToSupportData(xhr, this.URL);;
-            showErrorModal(`${error} - ${xhr.responseText}`);
+          error: function (xhr, status, error) {
+            displayAjaxToSupportData(xhr, this);;
+            showErrorModal(`${error} - ${xhr.responseText}`, xhr);
           }
         })
       } else {
@@ -419,9 +434,9 @@
             _csrf: window.SAILS_LOCALS._csrf,
             serverId: window.SAILS_LOCALS.server.id,
           },
-          error: (xhr, status, error) => {
-            displayAjaxToSupportData(xhr, this.URL);;
-            showErrorModal(`${error} - ${xhr.responseText}`);
+          error: function (xhr, status, error) {
+            displayAjaxToSupportData(xhr, this);;
+            showErrorModal(`${error} - ${xhr.responseText}`, xhr);
           }
         })
       }
@@ -433,7 +448,7 @@
       if (!validator.isInt(newMax, {
           min: 1
         })) {
-        return alert('Please provide a valid value for max locations.')
+        return showErrorModal('Please provide a valid value for max locations.')
       }
 
       $.ajax({
@@ -444,9 +459,9 @@
           serverId: window.SAILS_LOCALS.server.id,
           maxLocations: newMax
         },
-        error: (xhr, status, error) => {
-          displayAjaxToSupportData(xhr, this.URL);;
-          showErrorModal(`${error} - ${xhr.responseText}`);
+        error: function (xhr, status, error) {
+          displayAjaxToSupportData(xhr, this);;
+          showErrorModal(`${error} - ${xhr.responseText}`, xhr);
         }
       })
     })
@@ -457,7 +472,7 @@
       if (!validator.isInt(newTimeout, {
           min: 3
         })) {
-        return alert('Please provide a valid value for timeout. (number larger than 3)')
+        return showErrorModal('Please provide a valid value for timeout. (number larger than 3)')
       }
 
       $.ajax({
@@ -468,9 +483,9 @@
           serverId: window.SAILS_LOCALS.server.id,
           timeout: newTimeout
         },
-        error: (xhr, status, error) => {
-          displayAjaxToSupportData(xhr, this.URL);;
-          showErrorModal(`${error} - ${xhr.responseText}`);
+        error: function (xhr, status, error) {
+          displayAjaxToSupportData(xhr, this);;
+          showErrorModal(`${error} - ${xhr.responseText}`, xhr);
         }
       })
     })
@@ -482,7 +497,7 @@
       if (!validator.isInt(newDelay, {
           min: 0
         })) {
-        return alert('Please provide a valid value for delay. (number larger than 0)')
+        return showErrorModal('Please provide a valid value for delay. (number larger than 0)')
       }
 
       $.ajax({
@@ -493,9 +508,9 @@
           serverId: window.SAILS_LOCALS.server.id,
           delay: newDelay
         },
-        error: (xhr, status, error) => {
-          displayAjaxToSupportData(xhr, this.URL);;
-          showErrorModal(`${error} - ${xhr.responseText}`);
+        error: function (xhr, status, error) {
+          displayAjaxToSupportData(xhr, this);;
+          showErrorModal(`${error} - ${xhr.responseText}`, xhr);
         }
       })
     })

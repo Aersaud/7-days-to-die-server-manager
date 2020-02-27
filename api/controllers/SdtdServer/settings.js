@@ -38,34 +38,19 @@ module.exports = {
 
   fn: async function (inputs, exits) {
 
-    let server = await SdtdServer.findOne(inputs.serverId);
-    let serverConfig = await SdtdConfig.findOne({
+    const server = await SdtdServer.findOne(inputs.serverId);
+    const serverConfig = await SdtdConfig.findOne({
       server: server.id
     });
-    let user = await User.findOne(this.req.session.userId);
+    const user = await User.findOne(this.req.session.userId);
 
-    let cpmVersion;
-
-    try {
-      cpmVersion = await sails.helpers.sdtd.checkCpmVersion(inputs.serverId, true);
-    } catch (error) {
-      cpmVersion = 0;
-    }
-
-    let permCheck = await sails.helpers.roles.checkPermission.with({
-      userId: this.req.session.userId,
-      serverId: inputs.serverId,
-      permission: 'manageServer'
+    const gimmeItems = await GimmeItem.find({
+      server: server.id
     });
-
-    if (!permCheck.hasPermission) {
-      return exits.notAuthorized({
-        role: permCheck.role,
-        requiredPerm: 'manageServer'
-      });
-    }
-
-    let gimmeItems = await GimmeItem.find({server: server.id});
+    // Force a recheck of the CPM version in the cache
+    sails.helpers.sdtd.checkCpmVersion(server.id, true).then(r => {
+      // This is just to make sure the function is actually executed. Thanks sails
+    });
 
     try {
 
@@ -78,7 +63,6 @@ module.exports = {
         config: serverConfig,
         user: user,
         customCommands: customCommands,
-        cpmVersion: cpmVersion,
         gimmeItems: gimmeItems,
         serverTime: Date.now()
       });

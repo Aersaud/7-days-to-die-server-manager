@@ -18,7 +18,8 @@ class MemUpdate {
   }
 
   async _updateListener(memUpdate) {
-    sails.log.silly(`Received a mem update for server ${this.server.name}`)
+    sails.log.silly(`Received a mem update for server ${this.server.name}`);
+    await sails.helpers.redis.set(`server:${this.server.id}:fps`, memUpdate.fps);
     await saveInfoToDatabase(this.server, memUpdate);
 
     let currentCycles = await sails.helpers.redis.get(`server:${this.server.id}:trackingCyclesCompleted`);
@@ -43,7 +44,7 @@ async function saveInfoToDatabase(server, memUpdate) {
   try {
     memUpdate.heap = memUpdate.heap.replace('MB', '');
     memUpdate.rss = memUpdate.rss.replace('MB', '');
-    await HistoricalInfo.create({
+    await Analytics.create({
       type: 'memUpdate',
       server: server.id,
       fps: memUpdate.fps,
@@ -57,7 +58,7 @@ async function saveInfoToDatabase(server, memUpdate) {
       uptime: memUpdate.uptime
     });
   } catch (error) {
-    sails.log.error(`HOOKS - HistoricalInfo:memUpdate - Error saving data -${error}`);
+    sails.log.error(`HOOKS - Analytics:memUpdate - Error saving data -${error}`);
   }
 }
 
@@ -71,11 +72,10 @@ async function clearOldInfo(server, config) {
     let dateNow = Date.now();
     let borderDate = new Date(dateNow.valueOf() - milisecondsToKeepData);
 
-    await HistoricalInfo.destroy({
+    await Analytics.destroy({
       createdAt: {
         '<': borderDate.valueOf()
       },
-      type: 'memUpdate',
       server: server.id
     });
 
@@ -83,7 +83,7 @@ async function clearOldInfo(server, config) {
 
     sails.log.debug(`Deleted historical data of type memUpdate for server ${server.id} - took ${dateEnded - dateNow} ms`);
   } catch (error) {
-    sails.log.error(`HOOKS - HistoricalInfo:memUpdate - Error deleting data - ${error}`);
+    sails.log.error(`HOOKS - Analytics:memUpdate - Error deleting data - ${error}`);
   }
 
 }

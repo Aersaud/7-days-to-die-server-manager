@@ -16,6 +16,11 @@ module.exports = {
           required: true
       },
 
+      description: {
+        type: 'string',
+        defaultsTo: "No information given"
+      },
+
       // Separated by ";"
 
       aliases: {
